@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .scroll-container {
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
+        .scroll-container::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-start min-h-screen p-4 sm:p-8">
+
+    <!-- Main Container Card -->
+    <div class="w-full max-w-4xl bg-white rounded-3xl shadow-2xl p-6 sm:p-10 mb-8">
+        <header class="flex flex-col items-center sm:flex-row sm:justify-between sm:items-center pb-6 sm:pb-8 border-b border-gray-200 mb-6">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-2 sm:mb-0">My Dashboard</h1>
+            <div class="flex items-center space-x-2 text-sm text-gray-500">
+                <span>Supabase Status:</span>
+                <span id="supabaseStatus" class="font-mono bg-gray-100 px-2 py-1 rounded-lg">Connecting...</span>
+            </div>
+        </header>
+
+        <!-- Loading & Message Box -->
+        <div id="loading" class="text-center py-10" style="display: none;">
+            <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-4 text-gray-600">Loading your data...</p>
+        </div>
+        <div id="messageBox" class="p-4 rounded-xl text-center text-sm font-medium mb-4" style="display: none;"></div>
+
+        <!-- Authentication Panel -->
+        <div id="authPanel" class="flex flex-col space-y-4">
+            <h2 id="authHeading" class="text-2xl font-bold text-gray-700 mb-4 text-center">Log In</h2>
+            <div class="space-y-4 max-w-sm mx-auto w-full">
+                <input type="email" id="authEmail" placeholder="Email" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <input type="password" id="authPassword" placeholder="Password" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <input type="text" id="authReferralCode" placeholder="Referral Code (Optional)" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" style="display: none;">
+                <button id="authButton" onclick="handleAuthAction()" class="w-full px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors">Log In</button>
+            </div>
+            <p class="text-center text-sm text-gray-500 mt-4">
+                <span id="authToggleText">Don't have an account?</span>
+                <button id="authToggle" onclick="toggleAuthMode()" class="text-blue-500 hover:text-blue-600 font-medium ml-1">Sign Up</button>
+            </p>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div id="mainContent" class="flex flex-col space-y-8" style="display: none;">
+            <div class="flex justify-end">
+                <button onclick="logOut()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">Log Out</button>
+            </div>
+            <!-- User Info Section -->
+            <div class="bg-white p-6 rounded-xl shadow border border-gray-100">
+                <h3 class="text-xl font-bold text-gray-700 mb-4">My Profile</h3>
+                <div id="profileDetails" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-600">
+                    <div><span class="font-medium">Username:</span> <span id="user-username"></span></div>
+                    <div><span class="font-medium">Email:</span> <span id="user-email"></span></div>
+                    <div><span class="font-medium">Credits:</span> $<span id="user-credits"></span></div>
+                    <div><span class="font-medium">Coins:</span> <span id="user-coins"></span></div>
+                    <div><span class="font-medium">Membership Expires:</span> <span id="user-membership-expires"></span></div>
+                    <div><span class="font-medium">Total Referrals:</span> <span id="user-total-referrals"></span></div>
+                </div>
+            </div>
+
+            <!-- Referral Section -->
+            <div class="bg-white p-6 rounded-xl shadow border border-gray-100">
+                <h3 class="text-xl font-bold text-gray-700 mb-4">Referrals</h3>
+                <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <div class="w-full">
+                        <label for="referralCode" class="block text-sm font-medium text-gray-700 mb-1">Your Referral Code</label>
+                        <input type="text" id="referralCode" readonly class="w-full p-3 rounded-lg border border-gray-300 bg-gray-50 font-mono text-sm focus:outline-none">
+                    </div>
+                    <button onclick="copyToClipboard('referralCode')" class="w-full sm:w-auto px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex-shrink-0">Copy Code</button>
+                </div>
+            </div>
+
+            <!-- Transactions Section -->
+            <div class="bg-white p-6 rounded-xl shadow border border-gray-100">
+                <h3 class="text-xl font-bold text-gray-700 mb-4">Transaction History</h3>
+                <div id="transactionsList" class="space-y-3 scroll-container overflow-y-auto h-96">
+                    <!-- Transactions will be populated here -->
+                    <p class="text-center text-gray-400 py-10">No transactions found.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase SDK -->
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        // Supabase configuration
+        const SUPABASE_URL = 'https://sdtoxhkcbjmusxvmgnxr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkdG94aGtjYmptdXN4dm1nbnhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcyNDU1NDksImV4cCI6MjA3MjgyMTU0OX0.ie-e9VT091Sc0wAz7t_Vu3A7lSMI5p6GYlplEx2SUuQ';
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // State variables
+        let authMode = 'login'; // 'login' or 'signup'
+        
+        // UI elements
+        const loadingDiv = document.getElementById('loading');
+        const mainContentDiv = document.getElementById('mainContent');
+        const messageBox = document.getElementById('messageBox');
+        const supabaseStatus = document.getElementById('supabaseStatus');
+        const authPanel = document.getElementById('authPanel');
+        const authHeading = document.getElementById('authHeading');
+        const authButton = document.getElementById('authButton');
+        const authToggleText = document.getElementById('authToggleText');
+        const authToggle = document.getElementById('authToggle');
+        const authEmail = document.getElementById('authEmail');
+        const authPassword = document.getElementById('authPassword');
+        const authReferralCode = document.getElementById('authReferralCode');
+        
+        // Functions to show/hide UI
+        function showLoading() {
+            loadingDiv.style.display = 'block';
+            mainContentDiv.style.display = 'none';
+            authPanel.style.display = 'none';
+        }
+
+        function hideLoading() {
+            loadingDiv.style.display = 'none';
+        }
+
+        function showAuthPanel() {
+            authPanel.style.display = 'flex';
+            mainContentDiv.style.display = 'none';
+        }
+
+        function showDashboard() {
+            authPanel.style.display = 'none';
+            mainContentDiv.style.display = 'flex';
+        }
+
+        function showMessage(message, isSuccess = true) {
+            messageBox.textContent = message;
+            messageBox.style.display = 'block';
+            messageBox.className = `p-4 rounded-xl text-center text-sm font-medium mb-4 ${isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 5000);
+        }
+        
+        window.toggleAuthMode = function() {
+            authMode = authMode === 'login' ? 'signup' : 'login';
+            if (authMode === 'login') {
+                authHeading.textContent = 'Log In';
+                authButton.textContent = 'Log In';
+                authToggleText.textContent = "Don't have an account?";
+                authToggle.textContent = "Sign Up";
+                authReferralCode.style.display = 'none';
+            } else {
+                authHeading.textContent = 'Sign Up';
+                authButton.textContent = 'Sign Up';
+                authToggleText.textContent = "Already have an account?";
+                authToggle.textContent = "Log In";
+                authReferralCode.style.display = 'block';
+            }
+        }
+
+        window.handleAuthAction = async function() {
+            const email = authEmail.value;
+            const password = authPassword.value;
+
+            if (!email || !password) {
+                showMessage('Please enter both email and password.', false);
+                return;
+            }
+
+            if (authMode === 'login') {
+                await signIn(email, password);
+            } else {
+                await signUp(email, password);
+            }
+        }
+        
+        async function signUp(email, password) {
+            showLoading();
+            const referralCode = authReferralCode.value.trim();
+            const { data, error } = await supabase.auth.signUp({ 
+                email, 
+                password,
+                // Pass the referral code as user metadata to be handled by a Supabase trigger
+                // Supabase recommends this approach to link auth users to public.users table
+                data: { referrer_code: referralCode }
+            });
+
+            hideLoading();
+            if (error) {
+                console.error('Sign up error:', error);
+                showMessage(error.message, false);
+            } else {
+                console.log('User signed up:', data);
+                showMessage('Sign up successful! Please check your email for a confirmation link.');
+            }
+        }
+
+        async function signIn(email, password) {
+            showLoading();
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            hideLoading();
+            if (error) {
+                console.error('Sign in error:', error);
+                showMessage(error.message, false);
+            } else {
+                console.log('User signed in:', data);
+            }
+        }
+
+        window.logOut = async function() {
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                console.error('Sign out error:', error);
+                showMessage('Failed to log out.', false);
+            }
+        }
+
+        async function fetchUserData(userId) {
+            try {
+                const { data: user, error } = await supabase
+                    .from('users')
+                    .select('*, membership_levels(title)')
+                    .eq('id', userId)
+                    .single();
+                
+                if (error) {
+                    throw error;
+                }
+                
+                if (!user) {
+                    showMessage("User data not found. Please contact support.", false);
+                    return;
+                }
+                
+                renderProfile(user);
+                fetchTransactions(userId);
+                showDashboard();
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                showMessage("Failed to load user data.", false);
+            }
+        }
+        
+        function renderProfile(user) {
+            document.getElementById('user-username').textContent = user.username || 'N/A';
+            document.getElementById('user-email').textContent = user.email || 'N/A';
+            document.getElementById('user-credits').textContent = (user.credits / 100).toFixed(2);
+            document.getElementById('user-coins').textContent = user.coins;
+            document.getElementById('user-membership-expires').textContent = user.membership_expires_at ? new Date(user.membership_expires_at).toLocaleDateString() : 'None';
+            document.getElementById('user-total-referrals').textContent = user.total_referrals;
+            document.getElementById('referralCode').value = user.referral_code || 'N/A';
+        }
+        
+        async function fetchTransactions(userId) {
+            const transactionsList = document.getElementById('transactionsList');
+            transactionsList.innerHTML = '<p class="text-center text-gray-400 py-10">Loading transactions...</p>';
+            try {
+                const { data: transactions, error } = await supabase
+                    .from('transactions')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                transactionsList.innerHTML = '';
+
+                if (transactions.length === 0) {
+                     transactionsList.innerHTML = '<p class="text-center text-gray-400 py-10">No transactions found.</p>';
+                     return;
+                }
+
+                transactions.forEach(tx => {
+                    const txElement = document.createElement('div');
+                    txElement.className = 'bg-gray-50 p-3 rounded-lg border border-gray-100';
+                    const amountText = tx.kind === 'debit' || tx.amount_cents < 0 ? `-$${Math.abs(tx.amount_cents / 100).toFixed(2)}` : `+$${(tx.amount_cents / 100).toFixed(2)}`;
+                    const coinsText = tx.coins_amount !== undefined && tx.coins_amount !== null && tx.coins_amount !== 0 ? ` (${tx.coins_amount} coins)` : '';
+                    txElement.innerHTML = `
+                        <p class="font-medium text-gray-800">${tx.description || 'No Description'}</p>
+                        <p class="text-sm text-gray-600">${amountText}${coinsText}</p>
+                        <p class="text-xs text-gray-400">${new Date(tx.created_at).toLocaleString()}</p>
+                    `;
+                    transactionsList.appendChild(txElement);
+                });
+            } catch (error) {
+                console.error("Failed to fetch transactions:", error);
+                transactionsList.innerHTML = `<p class="text-center text-red-400 py-10">Failed to load transactions.</p>`;
+            }
+        }
+
+        window.copyToClipboard = function(elementId) {
+            const element = document.getElementById(elementId);
+            element.select();
+            element.setSelectionRange(0, 99999); // For mobile devices
+            try {
+                document.execCommand('copy');
+                showMessage('Referral code copied to clipboard!', true);
+            } catch (err) {
+                showMessage('Failed to copy code.', false);
+            }
+        }
+
+        // Initialize the app with an auth state listener
+        function initializePanel() {
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (session && session.user) {
+                    supabaseStatus.textContent = 'Authenticated';
+                    fetchUserData(session.user.id);
+                } else {
+                    supabaseStatus.textContent = 'Not Authenticated';
+                    showAuthPanel();
+                    hideLoading();
+                }
+            });
+        }
+        window.onload = initializePanel;
+    </script>
+</body>
+</html>
